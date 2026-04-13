@@ -20,10 +20,7 @@ import { Booking } from './types';
 interface GlobalState {
   points: number;
   bookings: Booking[];
-  redeemedRewards: string[]; // IDs of redeemed rewards
   addBooking: (booking: Booking) => void;
-  cancelBooking: (bookingId: string) => void;
-  redeemReward: (rewardId: string, cost: number) => void;
   updatePoints: (pts: number) => void;
   isPartnerMode: boolean;
   togglePartnerMode: () => void;
@@ -65,7 +62,6 @@ const Navigation: React.FC = () => {
           <button
             key={item.path}
             onClick={() => navigate(item.path)}
-            aria-label={`Navigate to ${item.label}`}
             className={`flex flex-col items-center gap-1 transition-all duration-300 ${
               isActive ? 'text-primary' : 'text-slate-500 hover:text-slate-300'
             }`}
@@ -136,11 +132,6 @@ const App: React.FC = () => {
     return localStorage.getItem('p8_partner_mode') === 'true';
   });
 
-  const [redeemedRewards, setRedeemedRewards] = useState<string[]>(() => {
-    const saved = localStorage.getItem('p8_rewards');
-    return saved ? JSON.parse(saved) : [];
-  });
-
   const addBooking = (booking: Booking) => {
     const newBookings = [booking, ...bookings];
     setBookings(newBookings);
@@ -148,35 +139,6 @@ const App: React.FC = () => {
     setPoints(newPoints);
     
     localStorage.setItem('p8_bookings', JSON.stringify(newBookings));
-    localStorage.setItem('p8_points', newPoints.toString());
-  };
-
-  const cancelBooking = (bookingId: string) => {
-    const bookingToCancel = bookings.find(b => b.id === bookingId);
-    if (!bookingToCancel || bookingToCancel.status !== 'upcoming') return;
-
-    const newBookings = bookings.map(b => 
-      b.id === bookingId ? { ...b, status: 'cancelled' as const } : b
-    );
-    setBookings(newBookings);
-    
-    // Optionally deduct points if they were pre-awarded, but usually points are awarded on completion.
-    // In this app, points seem to be added immediately on booking (see addBooking).
-    // So we should deduct them on cancellation.
-    const newPoints = points - (bookingToCancel.pointsEarned || 0);
-    setPoints(newPoints);
-
-    localStorage.setItem('p8_bookings', JSON.stringify(newBookings));
-    localStorage.setItem('p8_points', newPoints.toString());
-  };
-
-  const redeemReward = (rewardId: string, cost: number) => {
-    const newRewards = [...redeemedRewards, rewardId];
-    setRedeemedRewards(newRewards);
-    const newPoints = points - cost;
-    setPoints(newPoints);
-    
-    localStorage.setItem('p8_rewards', JSON.stringify(newRewards));
     localStorage.setItem('p8_points', newPoints.toString());
   };
 
@@ -204,17 +166,7 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <GlobalContext.Provider value={{ 
-      points, 
-      bookings, 
-      redeemedRewards,
-      addBooking, 
-      cancelBooking, 
-      redeemReward,
-      updatePoints, 
-      isPartnerMode, 
-      togglePartnerMode 
-    }}>
+    <GlobalContext.Provider value={{ points, bookings, addBooking, updatePoints, isPartnerMode, togglePartnerMode }}>
       <HashRouter>
         <AppContent />
       </HashRouter>
